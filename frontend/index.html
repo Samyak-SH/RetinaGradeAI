@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>DR Lesion Detection</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            color: #222;
+            min-height: 100vh;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 900px;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.08);
+        }
+
+        h1 {
+            margin-top: 0;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .upload-area {
+            border: 2px dashed #aaa;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .upload-area:hover {
+            border-color: #333;
+            background: #fafafa;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .upload-button {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #222;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .preview {
+            margin-top: 25px;
+            text-align: center;
+        }
+
+        .preview img {
+            max-width: 100%;
+            max-height: 500px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+        }
+
+        .predict-button {
+            width: 100%;
+            margin-top: 20px;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            background: #1976d2;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .predict-button:hover {
+            background: #125ca3;
+        }
+
+        .predict-button:disabled {
+            background: #aaa;
+            cursor: not-allowed;
+        }
+
+        .status {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+        }
+
+        .result {
+            margin-top: 35px;
+            display: none;
+        }
+
+        .result h2 {
+            text-align: center;
+        }
+
+        .result img {
+            display: block;
+            width: 100%;
+            max-height: 700px;
+            object-fit: contain;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Diabetic Retinopathy Detection</h1>
+
+    <div class="subtitle">
+        Upload a retinal fundus image to detect lesions
+    </div>
+
+    <!-- Upload -->
+    <div class="upload-area" onclick="document.getElementById('imageInput').click()">
+
+        <div>
+            Select a retinal image
+        </div>
+
+        <label class="upload-button">
+            Choose Image
+        </label>
+
+        <input
+            id="imageInput"
+            type="file"
+            accept="image/png,image/jpeg"
+            onchange="previewImage(event)"
+        >
+
+    </div>
+
+
+    <!-- Input preview -->
+    <div id="preview" class="preview" style="display:none;">
+
+        <h3>Input Image</h3>
+
+        <img id="inputImage">
+
+    </div>
+
+
+    <!-- Predict -->
+    <button
+        id="predictButton"
+        class="predict-button"
+        onclick="predict()"
+        disabled
+    >
+        Run Detection
+    </button>
+
+
+    <!-- Status -->
+    <div id="status" class="status"></div>
+
+
+    <!-- Result -->
+    <div id="result" class="result">
+
+        <h2>Detection Result</h2>
+
+        <img id="resultImage">
+
+    </div>
+
+</div>
+
+
+<script>
+
+    let selectedFile = null;
+
+
+    // -----------------------------------------------------
+    // Preview selected image
+    // -----------------------------------------------------
+
+    function previewImage(event) {
+
+        const file = event.target.files[0];
+
+        if (!file) {
+            return;
+        }
+
+        selectedFile = file;
+
+        const imageURL = URL.createObjectURL(file);
+
+        document.getElementById("inputImage").src = imageURL;
+
+        document.getElementById("preview").style.display = "block";
+
+        document.getElementById("predictButton").disabled = false;
+
+        document.getElementById("result").style.display = "none";
+
+        document.getElementById("status").innerText = "";
+    }
+
+
+    // -----------------------------------------------------
+    // Send image to Node.js
+    // -----------------------------------------------------
+
+    async function predict() {
+
+        if (!selectedFile) {
+            return;
+        }
+
+        const button = document.getElementById("predictButton");
+        const status = document.getElementById("status");
+
+        button.disabled = true;
+
+        status.innerText = "Running lesion detection... This may take a while.";
+
+        document.getElementById("result").style.display = "none";
+
+
+        const formData = new FormData();
+
+        formData.append("image", selectedFile);
+
+
+        try {
+
+            const response = await fetch(
+                "http://localhost:3000/predict",
+                {
+                    method: "POST",
+                    body: formData
+                }
+            );
+
+
+            if (!response.ok) {
+
+                const error = await response.json();
+
+                throw new Error(
+                    error.error || "Prediction failed"
+                );
+            }
+
+
+            // Server returns the PNG directly
+            const blob = await response.blob();
+
+            const resultURL = URL.createObjectURL(blob);
+
+            document.getElementById("resultImage").src = resultURL;
+
+            document.getElementById("result").style.display = "block";
+
+            status.innerText = "Detection complete.";
+
+        }
+        catch (error) {
+
+            console.error(error);
+
+            status.innerText =
+                "Error: " + error.message;
+        }
+
+
+        button.disabled = false;
+    }
+
+</script>
+
+</body>
+</html>

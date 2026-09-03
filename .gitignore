@@ -1,0 +1,71 @@
+# ==============================
+# Python
+# ==============================
+
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Python environment files
+.env
+
+
+# ==============================
+# Node.js
+# ==============================
+
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+
+# ==============================
+# Uploaded images
+# ==============================
+
+server/uploads/*
+
+
+# ==============================
+# Generated inference results
+# ==============================
+
+server/results/*
+
+
+# ==============================
+# ML model checkpoints
+# ==============================
+
+*.pt
+*.pth
+*.onnx
+*.ckpt
+
+
+# ==============================
+# OS / Editor
+# ==============================
+
+.DS_Store
+Thumbs.db
+
+.vscode/
+.idea/
+
+
+# ==============================
+# Temporary files
+# ==============================
+
+*.tmp
+*.temp
+
+server/uploads/*
+!server/uploads/.gitkeep
+
+server/results/*
+!server/results/.gitkeep
