@@ -1,0 +1,5 @@
+numpy==2.4.6
+opencv-python
+Pillow
+segmentation-models-pytorch==0.5.0
+timm==1.0.29
