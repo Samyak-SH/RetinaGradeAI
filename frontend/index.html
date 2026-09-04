@@ -1,216 +1,520 @@
 <!DOCTYPE html>
+
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>DR Lesion Detection</title>
+```
+<title>DR Lesion Detection</title>
 
-    <style>
-        * {
-            box-sizing: border-box;
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        color: #1f2937;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 40px 20px;
+        background: linear-gradient(135deg, #e8f3ff, #f4f8fc, #eaf6f3);
+        background-size: 300% 300%;
+        animation: backgroundMove 12s ease infinite;
+    }
+
+    @keyframes backgroundMove {
+        0% {
+            background-position: 0% 50%;
         }
 
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: #f4f6f8;
-            color: #222;
-            min-height: 100vh;
+        50% {
+            background-position: 100% 50%;
+        }
 
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        100% {
+            background-position: 0% 50%;
+        }
+    }
+
+    .container {
+        width: 95%;
+        max-width: 1250px;
+        background: rgba(255, 255, 255, 0.92);
+        padding: 35px;
+        border-radius: 20px;
+        box-shadow: 0 15px 50px rgba(30, 70, 100, 0.12);
+        backdrop-filter: blur(10px);
+        animation: fadeIn 0.6s ease;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(15px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    h1 {
+        margin: 0 0 8px;
+        text-align: center;
+        color: #123b5d;
+        font-size: 32px;
+    }
+
+    .subtitle {
+        text-align: center;
+        color: #64748b;
+        margin-bottom: 30px;
+        font-size: 15px;
+    }
+
+    .upload-area {
+        border: 2px dashed #9bb7cc;
+        border-radius: 14px;
+        padding: 30px;
+        text-align: center;
+        cursor: pointer;
+        background: rgba(240, 248, 255, 0.7);
+        transition: all 0.25s ease;
+    }
+
+    .upload-area:hover {
+        border-color: #1976d2;
+        background: #eef7ff;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(25, 118, 210, 0.08);
+    }
+
+    input[type="file"] {
+        display: none;
+    }
+
+    .upload-text {
+        color: #52697d;
+        font-size: 15px;
+    }
+
+    .upload-button {
+        display: inline-block;
+        padding: 12px 25px;
+        background: #1976d2;
+        color: white;
+        border-radius: 8px;
+        cursor: pointer;
+        margin-top: 12px;
+        transition: all 0.2s ease;
+    }
+
+    .upload-button:hover {
+        background: #125ca3;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(25, 118, 210, 0.25);
+    }
+
+    .images-container {
+        display: grid;
+        grid-template-columns: 1fr 1.35fr;
+        gap: 25px;
+        margin-top: 30px;
+    }
+
+    .image-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 18px;
+        min-width: 0;
+        animation: slideUp 0.5s ease;
+    }
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(15px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .image-card h3 {
+        margin: 0 0 8px;
+        text-align: center;
+        color: #334155;
+        font-size: 17px;
+    }
+
+    .image-help {
+        text-align: center;
+        color: #94a3b8;
+        font-size: 12px;
+        margin-bottom: 12px;
+    }
+
+    .image-viewer {
+        position: relative;
+        width: 100%;
+        height: 560px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: #eef2f6;
+        border-radius: 10px;
+        overflow: hidden;
+        cursor: crosshair;
+    }
+
+    .image-viewer img {
+        max-width: 100%;
+        max-height: 100%;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        border-radius: 7px;
+        user-select: none;
+    }
+
+    .result-viewer {
+        height: 620px;
+    }
+
+    .placeholder {
+        color: #94a3b8;
+        text-align: center;
+        font-size: 14px;
+        padding: 20px;
+    }
+
+    .zoom-window {
+        position: absolute;
+        width: 260px;
+        height: 260px;
+        border: 3px solid white;
+        border-radius: 12px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+        pointer-events: none;
+        display: none;
+        z-index: 20;
+        background-repeat: no-repeat;
+        background-color: white;
+    }
+
+    .zoom-label {
+        position: absolute;
+        bottom: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(15, 23, 42, 0.75);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 6px;
+        font-size: 11px;
+        pointer-events: none;
+    }
+
+    .predict-button {
+        width: 100%;
+        margin-top: 25px;
+        padding: 15px;
+        border: none;
+        border-radius: 9px;
+        background: linear-gradient(135deg, #1976d2, #1565c0);
+        color: white;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.25s ease;
+    }
+
+    .predict-button:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(25, 118, 210, 0.25);
+    }
+
+    .predict-button:active:not(:disabled) {
+        transform: translateY(0);
+    }
+
+    .predict-button:disabled {
+        background: #aeb8c2;
+        cursor: not-allowed;
+    }
+
+    .status {
+        text-align: center;
+        margin-top: 18px;
+        color: #64748b;
+        min-height: 20px;
+        font-size: 14px;
+    }
+
+    .loading {
+        display: inline-block;
+        width: 15px;
+        height: 15px;
+        border: 2px solid #cbd5e1;
+        border-top-color: #1976d2;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        vertical-align: middle;
+        margin-right: 6px;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .fullscreen-viewer {
+        position: fixed;
+        inset: 0;
+        background: rgba(5, 15, 25, 0.9);
+        z-index: 100;
+        display: none;
+        justify-content: center;
+        align-items: center;
+        padding: 30px;
+        cursor: zoom-out;
+    }
+
+    .fullscreen-viewer img {
+        max-width: 95vw;
+        max-height: 90vh;
+        object-fit: contain;
+        border-radius: 8px;
+        box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
+    }
+
+    .close-button {
+        position: absolute;
+        top: 20px;
+        right: 25px;
+        width: 45px;
+        height: 45px;
+        border: none;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.15);
+        color: white;
+        font-size: 28px;
+        cursor: pointer;
+    }
+
+    .close-button:hover {
+        background: rgba(255, 255, 255, 0.25);
+    }
+
+    @media (max-width: 850px) {
+
+        .container {
+            padding: 25px 20px;
+        }
+
+        .images-container {
+            grid-template-columns: 1fr;
+        }
+
+        .image-viewer,
+        .result-viewer {
+            height: 500px;
+        }
+
+        .zoom-window {
+            display: none !important;
+        }
+    }
+
+    @media (max-width: 500px) {
+
+        body {
+            padding: 15px 10px;
         }
 
         .container {
-            width: 90%;
-            max-width: 900px;
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.08);
+            width: 100%;
+            padding: 20px 15px;
         }
 
         h1 {
-            margin-top: 0;
-            text-align: center;
+            font-size: 25px;
         }
 
-        .subtitle {
-            text-align: center;
-            color: #666;
-            margin-bottom: 30px;
+        .image-viewer,
+        .result-viewer {
+            height: 400px;
         }
+    }
+</style>
+```
 
-        .upload-area {
-            border: 2px dashed #aaa;
-            border-radius: 12px;
-            padding: 40px;
-            text-align: center;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-
-        .upload-area:hover {
-            border-color: #333;
-            background: #fafafa;
-        }
-
-        input[type="file"] {
-            display: none;
-        }
-
-        .upload-button {
-            display: inline-block;
-            padding: 12px 24px;
-            background: #222;
-            color: white;
-            border-radius: 8px;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-
-        .preview {
-            margin-top: 25px;
-            text-align: center;
-        }
-
-        .preview img {
-            max-width: 100%;
-            max-height: 500px;
-            border-radius: 10px;
-            border: 1px solid #ddd;
-        }
-
-        .predict-button {
-            width: 100%;
-            margin-top: 20px;
-            padding: 14px;
-            border: none;
-            border-radius: 8px;
-            background: #1976d2;
-            color: white;
-            font-size: 16px;
-            cursor: pointer;
-        }
-
-        .predict-button:hover {
-            background: #125ca3;
-        }
-
-        .predict-button:disabled {
-            background: #aaa;
-            cursor: not-allowed;
-        }
-
-        .status {
-            text-align: center;
-            margin-top: 20px;
-            color: #666;
-        }
-
-        .result {
-            margin-top: 35px;
-            display: none;
-        }
-
-        .result h2 {
-            text-align: center;
-        }
-
-        .result img {
-            display: block;
-            width: 100%;
-            max-height: 700px;
-            object-fit: contain;
-            border-radius: 10px;
-            border: 1px solid #ddd;
-        }
-    </style>
 </head>
 
 <body>
 
 <div class="container">
 
-    <h1>Diabetic Retinopathy Detection</h1>
+```
+<h1>Diabetic Retinopathy Detection</h1>
 
-    <div class="subtitle">
-        Upload a retinal fundus image to detect lesions
+<div class="subtitle">
+    Upload a retinal fundus image to detect diabetic retinopathy lesions
+</div>
+
+
+<!-- Upload -->
+
+<div class="upload-area" id="uploadArea">
+
+    <div class="upload-text">
+        Select a retinal fundus image
     </div>
 
-    <!-- Upload -->
-    <div class="upload-area" onclick="document.getElementById('imageInput').click()">
+    <label class="upload-button">
+        Choose Image
+    </label>
 
-        <div>
-            Select a retinal image
-        </div>
+    <input
+        id="imageInput"
+        type="file"
+        accept="image/png,image/jpeg"
+    >
 
-        <label class="upload-button">
-            Choose Image
-        </label>
-
-        <input
-            id="imageInput"
-            type="file"
-            accept="image/png,image/jpeg"
-            onchange="previewImage(event)"
-        >
-
-    </div>
+</div>
 
 
-    <!-- Input preview -->
-    <div id="preview" class="preview" style="display:none;">
+<!-- Input and output -->
+
+<div id="imagesContainer" class="images-container" style="display:none;">
+
+    <!-- Input image -->
+
+    <div class="image-card">
 
         <h3>Input Image</h3>
 
-        <img id="inputImage">
+        <div class="image-help">
+            Hover to zoom · Click to enlarge
+        </div>
+
+        <div class="image-viewer" id="inputViewer">
+
+            <img id="inputImage">
+
+            <div class="zoom-window" id="inputZoom"></div>
+
+            <div class="zoom-label">
+                Hover to inspect
+            </div>
+
+        </div>
 
     </div>
 
 
-    <!-- Predict -->
-    <button
-        id="predictButton"
-        class="predict-button"
-        onclick="predict()"
-        disabled
-    >
-        Run Detection
-    </button>
+    <!-- Detection result -->
 
+    <div class="image-card">
 
-    <!-- Status -->
-    <div id="status" class="status"></div>
+        <h3>Detection Result</h3>
 
+        <div class="image-help">
+            Hover to zoom · Click to enlarge
+        </div>
 
-    <!-- Result -->
-    <div id="result" class="result">
+        <div class="image-viewer result-viewer" id="resultViewer">
 
-        <h2>Detection Result</h2>
+            <div id="resultPlaceholder" class="placeholder">
+                Run detection to see the lesion map
+            </div>
 
-        <img id="resultImage">
+            <img id="resultImage" style="display:none;">
+
+            <div class="zoom-window" id="resultZoom"></div>
+
+            <div class="zoom-label" id="resultZoomLabel" style="display:none;">
+                Hover to inspect
+            </div>
+
+        </div>
 
     </div>
 
 </div>
 
 
+<!-- Predict -->
+
+<button
+    id="predictButton"
+    class="predict-button"
+    disabled
+>
+    Run Detection
+</button>
+
+
+<!-- Status -->
+
+<div id="status" class="status"></div>
+```
+
+</div>
+
+<!-- Fullscreen image -->
+
+<div id="fullscreenViewer" class="fullscreen-viewer">
+
+```
+<button id="closeButton" class="close-button">
+    ×
+</button>
+
+<img id="fullscreenImage">
+```
+
+</div>
+
 <script>
 
     let selectedFile = null;
 
 
-    // -----------------------------------------------------
+    const imageInput = document.getElementById("imageInput");
+    const uploadArea = document.getElementById("uploadArea");
+    const inputImage = document.getElementById("inputImage");
+    const resultImage = document.getElementById("resultImage");
+    const imagesContainer = document.getElementById("imagesContainer");
+    const predictButton = document.getElementById("predictButton");
+    const status = document.getElementById("status");
+
+
+    // Open file picker
+
+    uploadArea.addEventListener("click", function () {
+
+        imageInput.click();
+
+    });
+
+
     // Preview selected image
-    // -----------------------------------------------------
 
-    function previewImage(event) {
+    imageInput.addEventListener("change", function () {
 
-        const file = event.target.files[0];
+        const file = imageInput.files[0];
 
         if (!file) {
             return;
@@ -220,36 +524,188 @@
 
         const imageURL = URL.createObjectURL(file);
 
-        document.getElementById("inputImage").src = imageURL;
+        inputImage.src = imageURL;
 
-        document.getElementById("preview").style.display = "block";
+        imagesContainer.style.display = "grid";
 
-        document.getElementById("predictButton").disabled = false;
+        predictButton.disabled = false;
 
-        document.getElementById("result").style.display = "none";
+        resultImage.style.display = "none";
 
-        document.getElementById("status").innerText = "";
+        document.getElementById("resultPlaceholder").style.display = "block";
+
+        document.getElementById("resultZoomLabel").style.display = "none";
+
+        status.innerText = "";
+
+    });
+
+
+    // Create Amazon-style zoom
+
+    function setupZoom(viewer, image, zoomWindow) {
+
+        viewer.addEventListener("mousemove", function (event) {
+
+            if (image.style.display === "none" || !image.src) {
+                return;
+            }
+
+            const imageRect = image.getBoundingClientRect();
+            const viewerRect = viewer.getBoundingClientRect();
+
+            const mouseX = event.clientX - imageRect.left;
+            const mouseY = event.clientY - imageRect.top;
+
+            if (
+                mouseX < 0 ||
+                mouseY < 0 ||
+                mouseX > imageRect.width ||
+                mouseY > imageRect.height
+            ) {
+                zoomWindow.style.display = "none";
+                return;
+            }
+
+            const percentX = mouseX / imageRect.width;
+            const percentY = mouseY / imageRect.height;
+
+            zoomWindow.style.display = "block";
+
+            const zoomSize = 2.5;
+
+            const zoomWidth = zoomWindow.offsetWidth;
+            const zoomHeight = zoomWindow.offsetHeight;
+
+            let left = event.clientX - viewerRect.left + 20;
+            let top = event.clientY - viewerRect.top - zoomHeight / 2;
+
+            if (left + zoomWidth > viewerRect.width) {
+                left = event.clientX - viewerRect.left - zoomWidth - 20;
+            }
+
+            if (top < 10) {
+                top = 10;
+            }
+
+            if (top + zoomHeight > viewerRect.height) {
+                top = viewerRect.height - zoomHeight - 10;
+            }
+
+            zoomWindow.style.left = left + "px";
+            zoomWindow.style.top = top + "px";
+
+            zoomWindow.style.backgroundImage = `url("${image.src}")`;
+
+            zoomWindow.style.backgroundSize =
+                `${imageRect.width * zoomSize}px ${imageRect.height * zoomSize}px`;
+
+            zoomWindow.style.backgroundPosition =
+                `${-(percentX * imageRect.width * zoomSize - zoomWidth / 2)}px
+                 ${-(percentY * imageRect.height * zoomSize - zoomHeight / 2)}px`;
+
+        });
+
+
+        viewer.addEventListener("mouseleave", function () {
+
+            zoomWindow.style.display = "none";
+
+        });
+
     }
 
 
-    // -----------------------------------------------------
-    // Send image to Node.js
-    // -----------------------------------------------------
+    setupZoom(
+        document.getElementById("inputViewer"),
+        inputImage,
+        document.getElementById("inputZoom")
+    );
 
-    async function predict() {
+
+    setupZoom(
+        document.getElementById("resultViewer"),
+        resultImage,
+        document.getElementById("resultZoom")
+    );
+
+
+    // Open image in fullscreen
+
+    function openFullscreen(image) {
+
+        if (!image.src || image.style.display === "none") {
+            return;
+        }
+
+        document.getElementById("fullscreenImage").src = image.src;
+
+        document.getElementById("fullscreenViewer").style.display = "flex";
+
+    }
+
+
+    inputImage.addEventListener("click", function () {
+
+        openFullscreen(inputImage);
+
+    });
+
+
+    resultImage.addEventListener("click", function () {
+
+        openFullscreen(resultImage);
+
+    });
+
+
+    // Close fullscreen
+
+    document.getElementById("closeButton").addEventListener("click", function (event) {
+
+        event.stopPropagation();
+
+        document.getElementById("fullscreenViewer").style.display = "none";
+
+    });
+
+
+    document.getElementById("fullscreenViewer").addEventListener("click", function (event) {
+
+        if (event.target === this) {
+            this.style.display = "none";
+        }
+
+    });
+
+
+    // Escape closes fullscreen
+
+    document.addEventListener("keydown", function (event) {
+
+        if (event.key === "Escape") {
+            document.getElementById("fullscreenViewer").style.display = "none";
+        }
+
+    });
+
+
+    // Run prediction
+
+    predictButton.addEventListener("click", async function () {
 
         if (!selectedFile) {
             return;
         }
 
-        const button = document.getElementById("predictButton");
-        const status = document.getElementById("status");
+        predictButton.disabled = true;
 
-        button.disabled = true;
+        status.innerHTML =
+            '<span class="loading"></span> Running lesion detection... This may take a while.';
 
-        status.innerText = "Running lesion detection... This may take a while.";
+        resultImage.style.display = "none";
 
-        document.getElementById("result").style.display = "none";
+        document.getElementById("resultPlaceholder").style.display = "block";
 
 
         const formData = new FormData();
@@ -270,22 +726,34 @@
 
             if (!response.ok) {
 
-                const error = await response.json();
+                let errorMessage = "Prediction failed";
 
-                throw new Error(
-                    error.error || "Prediction failed"
-                );
+                try {
+
+                    const error = await response.json();
+
+                    errorMessage = error.error || errorMessage;
+
+                } catch (e) {}
+
+                throw new Error(errorMessage);
+
             }
 
 
             // Server returns the PNG directly
+
             const blob = await response.blob();
 
             const resultURL = URL.createObjectURL(blob);
 
-            document.getElementById("resultImage").src = resultURL;
+            resultImage.src = resultURL;
 
-            document.getElementById("result").style.display = "block";
+            resultImage.style.display = "block";
+
+            document.getElementById("resultPlaceholder").style.display = "none";
+
+            document.getElementById("resultZoomLabel").style.display = "block";
 
             status.innerText = "Detection complete.";
 
@@ -294,15 +762,17 @@
 
             console.error(error);
 
-            status.innerText =
-                "Error: " + error.message;
+            status.innerText = "Error: " + error.message;
+
         }
 
 
-        button.disabled = false;
-    }
+        predictButton.disabled = false;
+
+    });
 
 </script>
 
 </body>
+
 </html>
