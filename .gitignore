@@ -69,3 +69,8 @@ server/uploads/*
 
 server/results/*
 !server/results/.gitkeep
+# ==============================
+# Dashboard stack (client / api / model-service)
+# ==============================
+
+dist/
