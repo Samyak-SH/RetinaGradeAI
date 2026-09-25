@@ -1,0 +1,63 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: lesion-mongo
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  model:
+    build: ./model-service
+    container_name: lesion-model
+    restart: unless-stopped
+    environment:
+      WEIGHTS_PATH: /app/weights
+      # Set to 0 to skip the slow native-resolution tiled path for microaneurysms.
+      USE_MA_NATIVE: "1"
+      # Raise above 1 to drop single-pixel segmentation speckle from the counts.
+      MIN_LESION_AREA: "1"
+    volumes:
+      - ./model-service/weights:/app/weights:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  api:
+    build: ./api
+    container_name: lesion-api
+    restart: unless-stopped
+    environment:
+      PORT: "5000"
+      MONGO_URI: mongodb://mongo:27017/lesiondb
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      JWT_EXPIRES_IN: 7d
+      MODEL_SERVICE_URL: http://model:8000
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      mongo:
+        condition: service_healthy
+      model:
+        condition: service_started
+
+  client:
+    build: ./client
+    container_name: lesion-client
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+
+volumes:
+  mongo-data:
+  uploads:
