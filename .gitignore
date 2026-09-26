@@ -44,7 +44,7 @@ server/results/*
 *.pth
 *.onnx
 *.ckpt
-
+*.zip
 
 # ==============================
 # OS / Editor
