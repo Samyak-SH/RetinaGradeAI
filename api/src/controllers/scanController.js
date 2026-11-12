@@ -61,6 +61,25 @@ export async function createScan(req, res) {
 
     scan.lesionCount = data.counts?.TOTAL ?? scan.lesions.length;
     scan.countsByLabel = countByLabel(scan.lesions);
+
+    if (data.grade) {
+      scan.grade = {
+        level: data.grade.level,
+        label: data.grade.label || '',
+        criteria: data.grade.criteria || '',
+        dmeSuspected: !!data.grade.dme_suspected,
+        nvAssessed: !!data.grade.nv_assessed,
+      };
+    }
+    if (data.referral) {
+      scan.referral = {
+        urgency: data.referral.urgency || '',
+        action: data.referral.action || '',
+        timeframe: data.referral.timeframe || '',
+        note: data.referral.note || '',
+      };
+    }
+    scan.classStats = data.class_stats || {};
     scan.imageWidth = data.image?.width || 0;
     scan.imageHeight = data.image?.height || 0;
     scan.modelName = data.model_name || '';
@@ -70,6 +89,7 @@ export async function createScan(req, res) {
     scan.summary = data.summary || '';
     scan.displayImage = saveImage(data.preprocessed_png_base64, 'input', req.file.filename);
     scan.overlayImage = saveImage(data.overlay_png_base64, 'overlay', req.file.filename);
+    scan.maskImage = saveImage(data.mask_png_base64, 'mask', req.file.filename);
     scan.status = 'complete';
     await scan.save();
 
@@ -105,7 +125,7 @@ export async function deleteScan(req, res) {
   const scan = await Scan.findOneAndDelete({ _id: req.params.id, doctor: req.user._id });
   if (!scan) return res.status(404).json({ message: 'scan not found' });
 
-  for (const name of [scan.inputImage, scan.displayImage, scan.overlayImage].filter(Boolean)) {
+  for (const name of [scan.inputImage, scan.displayImage, scan.overlayImage, scan.maskImage].filter(Boolean)) {
     fs.rm(path.join(uploadDir, name), { force: true }, () => {});
   }
   res.json({ message: 'scan deleted' });

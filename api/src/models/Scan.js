@@ -28,11 +28,28 @@ const scanSchema = new mongoose.Schema(
     // normalised against this, so it is what the report viewer renders.
     displayImage: { type: String, default: '' },
     overlayImage: { type: String, default: '' },
+    // GT-style segmentation mask: lesions painted on a black background.
+    maskImage: { type: String, default: '' },
     status: { type: String, enum: ['pending', 'complete', 'failed'], default: 'pending' },
     error: { type: String, default: '' },
     lesions: { type: [lesionSchema], default: [] },
     lesionCount: { type: Number, default: 0 },
     countsByLabel: { type: Map, of: Number, default: {} },
+    // DR severity grade (A1), rule-based referral (A3) and per-class area (A4).
+    grade: {
+      level: { type: Number, default: null },
+      label: { type: String, default: '' },
+      criteria: { type: String, default: '' },
+      dmeSuspected: { type: Boolean, default: false },
+      nvAssessed: { type: Boolean, default: false },
+    },
+    referral: {
+      urgency: { type: String, default: '' },
+      action: { type: String, default: '' },
+      timeframe: { type: String, default: '' },
+      note: { type: String, default: '' },
+    },
+    classStats: { type: mongoose.Schema.Types.Mixed, default: {} },
     imageWidth: { type: Number, default: 0 },
     imageHeight: { type: Number, default: 0 },
     modelName: { type: String, default: '' },

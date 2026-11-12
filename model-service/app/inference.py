@@ -11,7 +11,11 @@ from . import models
 from .config import (
     CLASSES,
     COLORS,
+    GRADE_LABELS,
+    GRADE_SEVERE_BLOT,
+    GRADE_SEVERE_HE,
     LESION_NAMES,
+    REFERRAL,
     SIZE,
     THR,
     USE_MA_NATIVE,
@@ -41,11 +45,78 @@ def _overlay(small, masks):
     return np.clip(out, 0, 255).astype(np.uint8)
 
 
+def _mask(small, masks):
+    """Lesion segmentation rendered as a GT-style mask: each class painted in its
+    own colour on a black background, nothing else."""
+    out = np.zeros_like(small, dtype=np.uint8)
+
+    # Same paint order as the overlay so small lesions stay on top.
+    for key in ["EX", "SE", "HE-blot", "HE-dot", "MA"]:
+        mask = masks[key].astype(bool)
+        out[mask] = np.array(COLORS[key], dtype=np.uint8)
+
+    return out
+
+
 def _summary(counts):
     present = [f"{counts[k]} {LESION_NAMES[k].lower()}" for k in CLASSES if counts[k]]
     if not present:
         return "No diabetic retinopathy lesions were detected in this image."
     return f"Detected {counts['TOTAL']} lesions: " + ", ".join(present) + "."
+
+
+def _grade(counts):
+    """ICDR-style severity grade (0-3) from lesion counts. See config for caveats:
+    NV is not modelled, so this never returns grade 4 (PDR)."""
+    ma = counts["MA"]
+    he = counts["HE-dot"] + counts["HE-blot"]
+    ex, se = counts["EX"], counts["SE"]
+
+    if counts["TOTAL"] == 0:
+        level, criteria = 0, "No lesions detected."
+    elif he == 0 and ex == 0 and se == 0 and ma > 0:
+        level, criteria = 1, "Microaneurysms only."
+    elif he >= GRADE_SEVERE_HE or counts["HE-blot"] >= GRADE_SEVERE_BLOT:
+        level, criteria = 3, f"Extensive hemorrhages ({he} total, {counts['HE-blot']} blot)."
+    else:
+        level, criteria = 2, "Hemorrhages and/or exudates present, below the severe threshold."
+
+    # Hard exudates are the imaging marker for diabetic macular edema risk.
+    dme = ex > 0
+    return {
+        "level": level,
+        "label": GRADE_LABELS[level],
+        "criteria": criteria,
+        "dme_suspected": bool(dme),
+        "nv_assessed": False,  # neovascularisation is not modelled; PDR cannot be graded here.
+    }
+
+
+def _referral(grade):
+    """Rule-based referral recommendation derived from the grade. No LLM, fully
+    deterministic and auditable."""
+    urgency, action, timeframe = REFERRAL[grade["level"]]
+    note = ""
+    # Suspected macular involvement expedites review even at lower grades.
+    if grade["dme_suspected"] and grade["level"] in (1, 2):
+        urgency = "soon"
+        timeframe = "within 1-3 months"
+        note = "Hard exudates suggest possible macular involvement (DME) — expedite review."
+    return {"urgency": urgency, "action": action, "timeframe": timeframe, "note": note}
+
+
+def _class_stats(masks, counts):
+    """Per-class pixel area and coverage fraction of the processed frame (A4)."""
+    total_px = float(SIZE * SIZE)
+    stats = {}
+    for key in CLASSES:
+        area = int(masks[key].sum())
+        stats[key] = {
+            "count": counts[key],
+            "area_px": area,
+            "area_pct": round(100.0 * area / total_px, 4),
+        }
+    return stats
 
 
 def run(image_bytes):
@@ -105,6 +176,10 @@ def run(image_bytes):
     counts["TOTAL"] = sum(counts[k] for k in CLASSES)
     lesions.sort(key=lambda l: l["area_px"], reverse=True)
 
+    grade = _grade(counts)
+    referral = _referral(grade)
+    class_stats = _class_stats(masks, counts)
+
     return {
         "model_name": MODEL_NAME,
         "device": models.DEVICE,
@@ -112,10 +187,14 @@ def run(image_bytes):
         "inference_ms": round((time.perf_counter() - started) * 1000, 1),
         "image": {"width": SIZE, "height": SIZE},
         "counts": counts,
+        "grade": grade,
+        "referral": referral,
+        "class_stats": class_stats,
         "lesion_names": LESION_NAMES,
         "colors": {k: "#%02x%02x%02x" % COLORS[k] for k in CLASSES},
         "lesions": lesions,
         "summary": _summary(counts),
         "preprocessed_png": _to_png_bytes(small),
         "overlay_png": _to_png_bytes(_overlay(small, masks)),
+        "mask_png": _to_png_bytes(_mask(small, masks)),
     }

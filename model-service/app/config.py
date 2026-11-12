@@ -38,6 +38,23 @@ KEEP_MODELS_LOADED = os.environ.get("KEEP_MODELS_LOADED", "1") not in ("0", "fal
 
 CLASSES = ["MA", "HE-dot", "HE-blot", "EX", "SE"]
 
+# --- DR severity grading (ICDR-style, screening-grade heuristic) --------------
+# Grade is derived from lesion counts only. Neovascularisation (NV) is NOT
+# modelled here, so the grade is capped at 3 (severe NPDR); true PDR (grade 4)
+# requires NV detection, which this service does not perform.
+GRADE_SEVERE_HE = int(os.environ.get("GRADE_SEVERE_HE", "20"))     # many hemorrhages -> severe
+GRADE_SEVERE_BLOT = int(os.environ.get("GRADE_SEVERE_BLOT", "5"))  # several blot hemorrhages -> severe
+
+GRADE_LABELS = {0: "No DR", 1: "Mild NPDR", 2: "Moderate NPDR", 3: "Severe NPDR"}
+
+# urgency, action, timeframe per grade level.
+REFERRAL = {
+    0: ("routine", "Continue routine annual diabetic eye screening", "12 months"),
+    1: ("routine", "Rescreen and reinforce glycaemic/BP control", "6-12 months"),
+    2: ("soon", "Refer to an ophthalmologist", "3-6 months"),
+    3: ("urgent", "Prompt ophthalmology referral", "within 1 month"),
+}
+
 COLORS = {
     "MA": (255, 0, 0),
     "HE-dot": (255, 140, 0),

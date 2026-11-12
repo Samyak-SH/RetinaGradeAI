@@ -70,5 +70,6 @@ async def predict(file: UploadFile = File(...)):
     # writes them back out as files.
     result["overlay_png_base64"] = base64.b64encode(result.pop("overlay_png")).decode()
     result["preprocessed_png_base64"] = base64.b64encode(result.pop("preprocessed_png")).decode()
+    result["mask_png_base64"] = base64.b64encode(result.pop("mask_png")).decode()
 
     return result

@@ -5,6 +5,10 @@ import LesionViewer from '../components/LesionViewer';
 
 const PALETTE = ['#ffb454', '#4f8cff', '#ff6b9d', '#38d6c4', '#c792ea', '#8bd450', '#ff8a5c'];
 
+// Grade level → colour, and referral urgency → colour.
+const GRADE_COLOR = ['#4caf50', '#8bc34a', '#ff9800', '#f44336'];
+const URGENCY_COLOR = { routine: '#4caf50', soon: '#ff9800', urgent: '#f44336' };
+
 const fmtDateTime = (d) =>
   new Date(d).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 
@@ -99,10 +103,83 @@ export default function ScanReport() {
           ))}
         </div>
 
+        {scan.grade && scan.grade.label && (
+          <div className="grid-2">
+            <div className="card" style={{ borderLeft: `4px solid ${GRADE_COLOR[scan.grade.level] || '#888'}` }}>
+              <div className="card-head"><h2>DR severity grade</h2></div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+                <span
+                  style={{
+                    fontSize: '1.6rem', fontWeight: 700,
+                    color: GRADE_COLOR[scan.grade.level] || '#888',
+                  }}
+                >
+                  Grade {scan.grade.level}
+                </span>
+                <span style={{ fontSize: '1.1rem' }}>{scan.grade.label}</span>
+              </div>
+              <p className="muted small" style={{ margin: '6px 0 0' }}>{scan.grade.criteria}</p>
+              {scan.grade.dmeSuspected && (
+                <p className="small" style={{ margin: '6px 0 0', color: '#ff9800' }}>
+                  ⚠ Hard exudates present — possible macular edema (DME).
+                </p>
+              )}
+              <p className="muted small" style={{ margin: '6px 0 0', fontStyle: 'italic' }}>
+                NV not modelled — grade capped at severe NPDR; PDR not assessed.
+              </p>
+            </div>
+
+            <div className="card" style={{ borderLeft: `4px solid ${URGENCY_COLOR[scan.referral?.urgency] || '#888'}` }}>
+              <div className="card-head">
+                <h2>Referral recommendation</h2>
+                {scan.referral?.urgency && (
+                  <span
+                    className="pill"
+                    style={{ background: URGENCY_COLOR[scan.referral.urgency], color: '#fff', textTransform: 'uppercase' }}
+                  >
+                    {scan.referral.urgency}
+                  </span>
+                )}
+              </div>
+              <p style={{ margin: 0, fontWeight: 600 }}>{scan.referral?.action}</p>
+              {scan.referral?.timeframe && (
+                <p className="muted small" style={{ margin: '4px 0 0' }}>Timeframe: {scan.referral.timeframe}</p>
+              )}
+              {scan.referral?.note && (
+                <p className="small" style={{ margin: '6px 0 0', color: '#ff9800' }}>{scan.referral.note}</p>
+              )}
+            </div>
+          </div>
+        )}
+
         {scan.summary && (
           <div className="card">
             <div className="card-head"><h2>Model summary</h2></div>
             <p style={{ margin: 0 }}>{scan.summary}</p>
+          </div>
+        )}
+
+        {scan.classStats && Object.keys(scan.classStats).length > 0 && (
+          <div className="card">
+            <div className="card-head"><h2>Lesion coverage</h2></div>
+            <table>
+              <thead>
+                <tr><th>Lesion type</th><th>Count</th><th>Area (px)</th><th>Coverage</th></tr>
+              </thead>
+              <tbody>
+                {Object.entries(scan.classStats).map(([label, s]) => (
+                  <tr key={label}>
+                    <td><span className="legend-dot" style={{ background: colorFor(label) }} />{label}</td>
+                    <td className="mono">{s.count}</td>
+                    <td className="mono small">{s.area_px?.toLocaleString?.() ?? s.area_px}</td>
+                    <td className="mono small">{(s.area_pct ?? 0).toFixed(3)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="muted small" style={{ margin: '8px 0 0' }}>
+              Coverage = share of the 1024×1024 processed frame occupied by each lesion class.
+            </p>
           </div>
         )}
 
@@ -128,6 +205,21 @@ export default function ScanReport() {
               focusedIndex={focused}
               onFocusChange={active.boxes ? setFocused : undefined}
             />
+            {scan.maskImage && (
+              <div style={{ marginTop: 16 }}>
+                <div className="card-head" style={{ marginBottom: 8 }}>
+                  <h2>Generated GT mask</h2>
+                </div>
+                <img
+                  src={`/uploads/${scan.maskImage}`}
+                  alt="Generated ground-truth segmentation mask"
+                  style={{ width: '100%', borderRadius: 8, display: 'block', background: '#000' }}
+                />
+                <p className="muted small" style={{ margin: '8px 0 0' }}>
+                  Lesion segmentation rendered as a mask — each class in its colour on black.
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="card fill">
